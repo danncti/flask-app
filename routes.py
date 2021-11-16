@@ -1,5 +1,5 @@
 from app import app, db
-from flask import render_template, redirect, url_for
+from flask import render_template, redirect, url_for, flash, get_flashed_messages
 from models import Task
 from datetime import datetime
 
@@ -20,6 +20,7 @@ def add():
         try:
             db.session.add(t)
             db.session.commit()
+            flash('Task added to the database')
         except:
             db.session.rollback()
             raise
@@ -30,3 +31,29 @@ def add():
         #                        title=form.title.data)
 
     return render_template('add.html', form=form)
+
+@app.route('/edit/<int:task_id>', methods=['GET', 'POST'])
+def edit(task_id):
+    task = Task.query.get(task_id)
+    form = forms.AddTaskForm()
+
+    if task:
+        if form.validate_on_submit():
+            task.title = form.title.data
+            task.date = datetime.utcnow()
+
+            try:
+                db.session.commit()
+                flash('Task has been updated successfully')
+            except:
+                db.session.rollback()
+                raise
+            # finally:
+            #     session.close()
+
+
+            return redirect(url_for('index'))
+
+        form.title.data = task.title
+        return render_template('edit.html', form=form, task_id=task_id)
+    return redirect(url_for('index'))
